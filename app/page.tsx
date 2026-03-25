@@ -26,8 +26,8 @@ export default function Home() {
   const loadStatistics = async () => {
     try {
       const response = await api.getStatistics();
-      if (response.success) {
-        setStats(response.data);
+      if (response.success && response.data) {
+        setStats(response.data as Statistics);
       }
     } catch (error) {
       console.error('Failed to load statistics:', error);
@@ -39,8 +39,8 @@ export default function Home() {
   const loadAccounts = async () => {
     try {
       const response = await api.getAccounts({ limit: 100 });
-      if (response.success) {
-        setAccounts(response.data);
+      if (response.success && response.data) {
+        setAccounts(response.data as any[]);
       }
     } catch (error) {
       console.error('Failed to load accounts:', error);
@@ -57,15 +57,16 @@ export default function Home() {
       if (response.success) {
         setCheckResult(response);
         
-        const unprocessed = response.data.emails_not_in_db;
-        const processed = response.data.emails_in_db;
+        const data = response.data as any;
+        const unprocessed = data.emails_not_in_db;
+        const processed = data.emails_in_db;
         
         showToast(
-          `Kết quả kiểm tra: ${response.data.total_emails} email, ${processed} đã có, ${unprocessed} chưa có`,
+          `Kết quả kiểm tra: ${data.total_emails} email, ${processed} đã có, ${unprocessed} chưa có`,
           unprocessed > 0 ? 'info' : 'success'
         );
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -93,7 +94,7 @@ export default function Home() {
         loadStatistics();
         loadAccounts();
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -111,14 +112,14 @@ export default function Home() {
         setAccounts(prevAccounts => 
           prevAccounts.map(acc => 
             acc._id === accountId 
-              ? { ...acc, total_users: response.data.total_users }
+              ? { ...acc, total_users: (response.data as any).total_users }
               : acc
           )
         );
         
-        showToast(`Đã cập nhật: ${response.data.total_users} users`, 'success');
+        showToast(`Đã cập nhật: ${(response.data as any).total_users} users`, 'success');
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -138,7 +139,7 @@ export default function Home() {
         
         showToast('Đã xóa account thành công!', 'success');
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -151,11 +152,11 @@ export default function Home() {
       
       if (response.success) {
         // Update local state immediately if total_users is returned
-        if (response.data.total_users !== null && response.data.total_users !== undefined) {
+        if ((response.data as any).total_users !== null && (response.data as any).total_users !== undefined) {
           setAccounts(prevAccounts => 
             prevAccounts.map(acc => 
               acc._id === accountId 
-                ? { ...acc, total_users: response.data.total_users }
+                ? { ...acc, total_users: (response.data as any).total_users }
                 : acc
             )
           );
@@ -163,7 +164,7 @@ export default function Home() {
         
         showToast(`Đã mời ${email} vào team thành công!`, 'success');
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -594,9 +595,9 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
     try {
       const response = await api.getPendingInvites(account._id);
       if (response.success) {
-        setPendingInvites(response.data.invites);
+        setPendingInvites((response.data as any).invites);
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -616,7 +617,7 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
       if (response.success) {
         showToast(`Đã gửi lại lời mời cho ${email}`, 'success');
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -635,7 +636,7 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
         setPendingInvites(prev => prev.filter(inv => inv.email_address !== email));
         showToast('Đã xóa lời mời', 'success');
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -656,7 +657,7 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
       try {
         const response = await api.getAccountPassword(account._id);
         if (response.success) {
-          setPassword(response.data.password);
+          setPassword((response.data as any).password);
         } else {
           setPassword('N/A');
         }
@@ -681,7 +682,7 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
         setSaleStatus(newStatus);
         showToast(`Đã cập nhật: ${newStatus === 'sold' ? 'Đã Bán' : 'Chưa Bán'}`, 'success');
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -696,7 +697,7 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
       const response = await api.checkAccountBan(account._id);
       
       if (response.success) {
-        const isBanned = response.data.is_banned;
+        const isBanned = (response.data as any).is_banned;
         
         if (isBanned) {
           showToast('⚠️ Account bị BAN/DEACTIVATED!', 'error');
@@ -706,7 +707,7 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
           showToast('✅ Account hoạt động bình thường!', 'success');
         }
       } else {
-        showToast(response.error, 'error');
+        showToast(response.error || 'Unknown error', 'error');
       }
     } catch (error: any) {
       showToast(error.message, 'error');

@@ -26,8 +26,8 @@ export default function LogsPage() {
     setLoading(true);
     try {
       const response = await api.getLogs(undefined, 100);
-      if (response.success) {
-        setLogs(response.data);
+      if (response.success && response.data) {
+        setLogs(response.data as Log[]);
       }
     } catch (error) {
       console.error('Failed to load logs:', error);

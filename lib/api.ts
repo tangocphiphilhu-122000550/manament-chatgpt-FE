@@ -9,6 +9,7 @@ interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+  [key: string]: any;
 }
 
 class ApiClient {
