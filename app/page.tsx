@@ -553,6 +553,48 @@ export default function Home() {
             <li>Google Sheet integration (read emails, write results)</li>
           </ul>
         </div>
+
+        {/* Confirmation Modal */}
+        {showConfirmModal && confirmConfig && (
+          <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50" onClick={handleCancelConfirm}>
+            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-200" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">{confirmConfig.title}</h3>
+                <button
+                  onClick={handleCancelConfirm}
+                  className="text-gray-400 hover:text-gray-600 transition"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <p className="text-base text-gray-700 mb-8 leading-relaxed whitespace-pre-line">
+                {confirmConfig.message}
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelConfirm}
+                  className="flex-1 px-6 py-3 text-base font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                >
+                  {confirmConfig.cancelText}
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  className={`flex-1 px-6 py-3 text-base font-semibold text-white rounded-lg transition shadow-md ${
+                    confirmConfig.danger
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {confirmConfig.confirmText}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
@@ -1253,48 +1295,6 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
                 className="w-full px-6 py-3 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-md"
               >
                 Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Modal */}
-      {showConfirmModal && confirmConfig && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50" onClick={handleCancelConfirm}>
-          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-200" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">{confirmConfig.title}</h3>
-              <button
-                onClick={handleCancelConfirm}
-                className="text-gray-400 hover:text-gray-600 transition"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <p className="text-base text-gray-700 mb-8 leading-relaxed whitespace-pre-line">
-              {confirmConfig.message}
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={handleCancelConfirm}
-                className="flex-1 px-6 py-3 text-base font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
-              >
-                {confirmConfig.cancelText}
-              </button>
-              <button
-                onClick={handleConfirm}
-                className={`flex-1 px-6 py-3 text-base font-semibold text-white rounded-lg transition shadow-md ${
-                  confirmConfig.danger
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                {confirmConfig.confirmText}
               </button>
             </div>
           </div>
