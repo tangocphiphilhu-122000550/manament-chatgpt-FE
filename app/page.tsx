@@ -12,6 +12,50 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [checking, setChecking] = useState(false);
+  
+  // Confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
+
+  // Helper to show confirmation modal
+  const showConfirm = (config: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  }) => {
+    setConfirmConfig({
+      title: config.title,
+      message: config.message,
+      confirmText: config.confirmText || 'Xác nhận',
+      cancelText: config.cancelText || 'Hủy',
+      onConfirm: config.onConfirm,
+      danger: config.danger || false,
+    });
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = () => {
+    if (confirmConfig?.onConfirm) {
+      confirmConfig.onConfirm();
+    }
+    setShowConfirmModal(false);
+    setConfirmConfig(null);
+  };
+
+  const handleCancelConfirm = () => {
+    setShowConfirmModal(false);
+    setConfirmConfig(null);
+  };
   const [result, setResult] = useState<any>(null);
   const [checkResult, setCheckResult] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,31 +120,34 @@ export default function Home() {
   };
 
   const handleLoginFromSheet = async () => {
-    if (!confirm('Bạn có chắc muốn đọc email từ Google Sheet và login?')) {
-      return;
-    }
+    showConfirm({
+      title: 'Login từ Google Sheet',
+      message: 'Bạn có chắc muốn đọc email từ Google Sheet và login các account mới?',
+      confirmText: 'Login',
+      onConfirm: async () => {
+        setProcessing(true);
+        setResult(null);
 
-    setProcessing(true);
-    setResult(null);
+        try {
+          const response = await api.loginFromGoogleSheet({});
 
-    try {
-      const response = await api.loginFromGoogleSheet({});
-
-      if (response.success) {
-        setResult(response);
-        showToast(`Thành công! Tổng: ${response.total}, Thành công: ${response.processed}, Thất bại: ${response.failed}`, 'success');
-        
-        // Reload statistics and accounts list
-        loadStatistics();
-        loadAccounts();
-      } else {
-        showToast(response.error || 'Unknown error', 'error');
+          if (response.success) {
+            setResult(response);
+            showToast(`Thành công! Tổng: ${response.total}, Thành công: ${response.processed}, Thất bại: ${response.failed}`, 'success');
+            
+            // Reload statistics and accounts list
+            loadStatistics();
+            loadAccounts();
+          } else {
+            showToast(response.error || 'Unknown error', 'error');
+          }
+        } catch (error: any) {
+          showToast(error.message, 'error');
+        } finally {
+          setProcessing(false);
+        }
       }
-    } catch (error: any) {
-      showToast(error.message, 'error');
-    } finally {
-      setProcessing(false);
-    }
+    });
   };
 
   const handleRefreshUsers = async (accountId: string) => {
@@ -1206,6 +1253,48 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
                 className="w-full px-6 py-3 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-md"
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && confirmConfig && (
+        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50" onClick={handleCancelConfirm}>
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-200" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">{confirmConfig.title}</h3>
+              <button
+                onClick={handleCancelConfirm}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <p className="text-base text-gray-700 mb-8 leading-relaxed whitespace-pre-line">
+              {confirmConfig.message}
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelConfirm}
+                className="flex-1 px-6 py-3 text-base font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+              >
+                {confirmConfig.cancelText}
+              </button>
+              <button
+                onClick={handleConfirm}
+                className={`flex-1 px-6 py-3 text-base font-semibold text-white rounded-lg transition shadow-md ${
+                  confirmConfig.danger
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                {confirmConfig.confirmText}
               </button>
             </div>
           </div>
