@@ -60,6 +60,7 @@ export default function Home() {
   const [checkResult, setCheckResult] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [seatFilter, setSeatFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('active');
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -244,9 +245,25 @@ export default function Home() {
     }
   });
 
+  // Filter by status (ban/active)
+  const filteredByStatus = filteredBySeat.filter(account => {
+    if (statusFilter === 'all') return true;
+    
+    switch (statusFilter) {
+      case 'active':
+        return account.status === 'active';
+      case 'banned':
+        return account.status === 'banned';
+      case 'pending':
+        return account.status === 'pending';
+      default:
+        return true;
+    }
+  });
+
   // Separate accounts by type
-  const personalAccounts = filteredBySeat.filter(acc => acc.account_type === 'Personal');
-  const teamAccounts = filteredBySeat.filter(acc => acc.account_type === 'Team');
+  const personalAccounts = filteredByStatus.filter(acc => acc.account_type === 'Personal');
+  const teamAccounts = filteredByStatus.filter(acc => acc.account_type === 'Team');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -352,6 +369,19 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-gray-900">Accounts</h2>
             
             <div className="flex items-center gap-4">
+              {/* Status Filter */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-4 text-base font-bold border-2 border-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-md bg-white cursor-pointer text-gray-800"
+                style={{ minWidth: '200px' }}
+              >
+                <option value="all" className="font-bold text-gray-800">📊 Tất cả trạng thái</option>
+                <option value="active" className="font-bold text-gray-800">✅ Active</option>
+                <option value="banned" className="font-bold text-gray-800">🚫 Banned</option>
+                <option value="pending" className="font-bold text-gray-800">⏳ Pending</option>
+              </select>
+
               {/* Seat Filter */}
               <select
                 value={seatFilter}
@@ -397,9 +427,9 @@ export default function Home() {
             </div>
           </div>
 
-          {filteredBySeat.length === 0 ? (
+          {filteredByStatus.length === 0 ? (
             <p className="text-gray-500 text-center py-12 text-lg">
-              {searchQuery || seatFilter !== 'all' ? 'Không tìm thấy account nào' : 'No accounts found'}
+              {searchQuery || seatFilter !== 'all' || statusFilter !== 'all' ? 'Không tìm thấy account nào' : 'No accounts found'}
             </p>
           ) : (
             <div className="space-y-10">
@@ -622,6 +652,8 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
   const [saleStatus, setSaleStatus] = useState<'sold' | 'available'>(account.sale_status || 'available');
   const [updatingSaleStatus, setUpdatingSaleStatus] = useState(false);
   const [checkingBan, setCheckingBan] = useState(false);
+  const [workspaceUsers, setWorkspaceUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const { showToast } = useToast();
 
   const statusColors = {
@@ -758,6 +790,21 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
         setPassword('N/A');
       } finally {
         setLoadingPassword(false);
+      }
+    }
+    
+    // Load workspace users for Team accounts
+    if (account.account_type === 'Team' && workspaceUsers.length === 0) {
+      setLoadingUsers(true);
+      try {
+        const response = await api.refreshAccountUsers(account._id);
+        if (response.success && (response.data as any).users) {
+          setWorkspaceUsers((response.data as any).users);
+        }
+      } catch (error: any) {
+        console.error('Failed to load workspace users:', error);
+      } finally {
+        setLoadingUsers(false);
       }
     }
   };
@@ -1136,9 +1183,10 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
 
       {/* Account Details Modal */}
       {showDetailsModal && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowDetailsModal(false)}>
-          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-200" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDetailsModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full border border-gray-200 flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            {/* Header - Fixed */}
+            <div className="flex items-center justify-between p-8 pb-6 border-b border-gray-200">
               <h3 className="text-2xl font-bold text-gray-900">Chi tiết tài khoản</h3>
               <button
                 onClick={() => setShowDetailsModal(false)}
@@ -1150,7 +1198,8 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
               </button>
             </div>
 
-            <div className="space-y-5">
+            {/* Content - Scrollable */}
+            <div className="overflow-y-auto px-8 py-6 space-y-5">
               {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
@@ -1208,12 +1257,11 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Grid 2 columns for all info below password */}
-            <div className="grid grid-cols-2 gap-x-6 gap-y-5">
-              {/* Status */}
-              <div>
+              {/* Grid 2 columns for all info below password */}
+              <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                {/* Status */}
+                <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
                 <span className={`inline-block px-4 py-2 text-base font-semibold rounded-lg ${
                   account.status === 'active' ? 'bg-green-100 text-green-800' :
@@ -1289,7 +1337,48 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
               )}
             </div>
 
-            <div className="mt-8">
+            {/* Workspace Users List - only for Team accounts */}
+            {account.account_type === 'Team' && (
+              <div className="border-t-2 border-gray-200 pt-6">
+                <h4 className="text-lg font-bold text-gray-900 mb-4">Workspace Users</h4>
+                
+                {loadingUsers ? (
+                  <div className="flex justify-center py-6">
+                    <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                ) : workspaceUsers.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4 text-sm">Không có user nào trong workspace</p>
+                ) : (
+                  <div className="space-y-3">
+                    {workspaceUsers.map((user, index) => (
+                      <div key={index} className="flex items-start justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{user.name || 'N/A'}</p>
+                          <p className="text-xs text-gray-600 truncate">{user.email}</p>
+                          <div className="flex gap-2 mt-1">
+                            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                              {user.role || 'N/A'}
+                            </span>
+                            {user.seat_type && (
+                              <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                                {user.seat_type}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            </div>
+
+            {/* Footer - Fixed */}
+            <div className="p-8 pt-6 border-t border-gray-200">
               <button
                 onClick={() => setShowDetailsModal(false)}
                 className="w-full px-6 py-3 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-md"
