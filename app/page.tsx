@@ -793,8 +793,8 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
       }
     }
     
-    // Load workspace users for Team accounts
-    if (account.account_type === 'Team' && workspaceUsers.length === 0) {
+    // Load workspace users for Team accounts (only if active)
+    if (account.account_type === 'Team' && account.status === 'active' && workspaceUsers.length === 0) {
       setLoadingUsers(true);
       try {
         const response = await api.refreshAccountUsers(account._id);
@@ -1342,7 +1342,11 @@ function AccountCard({ account, onRefresh, onDelete, onInviteUser }: {
               <div className="border-t-2 border-gray-200 pt-6">
                 <h4 className="text-lg font-bold text-gray-900 mb-4">Workspace Users</h4>
                 
-                {loadingUsers ? (
+                {account.status === 'banned' ? (
+                  <div className="text-center py-6">
+                    <p className="text-red-600 font-semibold text-sm">⚠️ Account bị ban, không thể xem danh sách users</p>
+                  </div>
+                ) : loadingUsers ? (
                   <div className="flex justify-center py-6">
                     <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
